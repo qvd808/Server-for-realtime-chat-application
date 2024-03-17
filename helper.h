@@ -9,5 +9,6 @@ struct Client {
 typedef struct Client Client;
 
 Client *create_client(int fd);
+void add_client(Client **head, Client *client);
 
 #endif

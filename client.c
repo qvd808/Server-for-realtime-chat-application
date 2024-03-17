@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -14,8 +15,6 @@
 
 #include "common.h"
 #include "message.pb.h"
-
-#define BUFFER_SIZE 256
 
 typedef struct MessageChunk {
   char buffer[BUFFER_SIZE];
@@ -42,6 +41,7 @@ int main() {
 
   while (1) {
     MessageChunk chunk;
+    memset(chunk.buffer, 0, BUFFER_SIZE);
 
     int byte_read = read(STDIN_FILENO, chunk.buffer, BUFFER_SIZE - 1);
 
