@@ -10,5 +10,11 @@ all: server client
 clean:
 	rm -f server client message.pb.c message.pb.h
 
-%: %.c common.c message.pb.c 
+client: client.c common.c message.pb.c 
 	$(CC) $(CFLAGS) -o $@ $^ $(NANOPB_CORE)
+
+server: server.c common.c message.pb.c helper.c 
+	$(CC) $(CFLAGS) -o $@ $^ $(NANOPB_CORE)
+
+# %: %.c common.c message.pb.c 
+# 	$(CC) $(CFLAGS) -o $@ $^ $(NANOPB_CORE)

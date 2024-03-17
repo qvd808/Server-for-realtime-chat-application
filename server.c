@@ -2,6 +2,7 @@
 #include <dirent.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -13,6 +14,8 @@
 
 #include "common.h"
 #include "message.pb.h"
+#include "helper.h"
+
 
 void *handle_connection(void *arg) {
 
@@ -57,6 +60,9 @@ int main() {
     perror("Listen failed!\n");
     return 1;
   }
+
+  Client* head = NULL;
+  head = create_client(1);
 
   while (1) {
     connfd = accept(listenfd, NULL, NULL);
