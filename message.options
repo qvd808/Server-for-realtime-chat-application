@@ -1,0 +1,3 @@
+# Define a legnth for the message chunk
+
+ChatMessage.chat max_size:256

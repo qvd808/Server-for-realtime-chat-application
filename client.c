@@ -15,6 +15,12 @@
 #include "common.h"
 #include "message.pb.h"
 
+#define BUFFER_SIZE 256
+
+typedef struct MessageChunk {
+  char buffer[BUFFER_SIZE];
+} MessageChunk;
+
 int main() {
 
   int sockfd;
@@ -34,12 +40,19 @@ int main() {
     return 1;
   }
 
-  SimpleMessage message = {};
-  message.lucky_number = 13;
-  pb_ostream_t output = pb_ostream_from_socket(sockfd);
+  while (1) {
+    MessageChunk chunk;
 
-  if (!pb_encode_delimited(&output, SimpleMessage_fields, &message)) {
-    fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
+    int byte_read = read(STDIN_FILENO, chunk.buffer, BUFFER_SIZE - 1);
+
+    pb_ostream_t output = pb_ostream_from_socket(sockfd);
+
+    ChatMessage chat = {};
+    strcpy(chat.chat, chunk.buffer);
+
+    if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
+      fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
+    }
   }
 
   close(sockfd);

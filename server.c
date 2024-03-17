@@ -1,6 +1,7 @@
 #include <asm-generic/socket.h>
 #include <dirent.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -13,19 +14,24 @@
 #include "common.h"
 #include "message.pb.h"
 
-void handle_connection(int fd) {
+void *handle_connection(void *arg) {
 
-  printf("Starting handle socket connection\n");
+  // Reader the Header to determine the size of message to read
 
-  SimpleMessage message = {};
+  int fd = *(int *)(arg);
+  ChatMessage chat = {};
+
   pb_istream_t input = pb_istream_from_socket(fd);
-  if (!pb_decode_delimited(&input, SimpleMessage_fields, &message)) {
+  if (!pb_decode_delimited(&input, ChatMessage_fields, &chat)) {
     perror("Decode failed\n");
-  } else {
-    printf("The luckey number is %d\n", (int)message.lucky_number);
   }
 
-  printf("Finished handle socket connection\n");
+  printf("%s", chat.chat);
+
+  // Close the connection once done
+  close(fd);
+
+  return NULL;
 }
 
 int main() {
@@ -54,13 +60,19 @@ int main() {
 
   while (1) {
     connfd = accept(listenfd, NULL, NULL);
-    printf("Got connection\n");
 
-    handle_connection(connfd);
+    if (connfd == -1) {
+      printf("Have trouble accept connection\n");
+    }
 
-    printf("Close connection\n");
+    printf("A new client has connected\n");
+    pthread_t thread_id;
 
-    close(connfd);
+    int check = pthread_create(&thread_id, NULL, handle_connection, &connfd);
+
+    if (check != 0) {
+      printf("Failed to handle connection\n");
+    }
   }
   return 0;
 }
