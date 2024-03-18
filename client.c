@@ -104,13 +104,19 @@ void evaluate_cmd(char *buffer) {
 
   token = strtok(buffer, " \0");
 
+  const char *key[] = {"create", "join", "help"};
+
   while (token != NULL) {
     argv[argc] = token;
     argc += 1;
+    if (argc == 10) {
+      printf("Can't not handle more than 10 argument\n");
+    }
     token = strtok(NULL, " \0");
   }
 
-  for (int i = 0; i < argc; i++) {
-    printf("Argument at index %d is %s\n", i, argv[i]);
-  }
+  // create an enum to pass in
+
+  //   printf("Argument at index %d is %s\n", i, argv[i]);
+  // }
 }
