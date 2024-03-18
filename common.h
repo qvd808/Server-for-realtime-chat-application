@@ -2,6 +2,7 @@
 #define _PB_EXAMPLE_COMMON_H_
 
 #define BUFFER_SIZE 256
+#define PORT 1234
 
 #include <pb.h>
 

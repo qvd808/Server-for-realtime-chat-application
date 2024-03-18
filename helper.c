@@ -17,14 +17,16 @@ Client *create_client(int fd) {
 void add_client(Client **head, Client *client) {
   if (*head == NULL) {
     *head = client;
-    (*head)->next = client;
-  }
+    (*head)->next = NULL;
 
-  Client *temp = *head;
-  while (temp->next != *head) {
-    temp = temp->next;
-  }
+  } else {
 
-  temp->next = client;
-  client->next = *head;
+    Client *temp = *head;
+
+    while (temp->next != NULL) {
+      temp = temp->next;
+    }
+
+    temp->next = client;
+  }
 }

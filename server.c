@@ -20,13 +20,29 @@
 typedef struct HandleConnectionArg {
   Client **head;
   int current_client_fd;
+  pthread_t *thread_id;
 } HandleConnectionArg;
+
+void send_msg_to_other_client(Client **head, int fd, const char *buffer) {
+  Client *temp = *head;
+
+  // printf("The current client is %d, and there message is %s", fd, buffer);
+
+  while (temp != NULL) {
+    if (temp->fd != fd) {
+      write(temp->fd, buffer, BUFFER_SIZE);
+    }
+    temp = temp->next;
+  }
+}
 
 void *handle_connection(void *arg) {
 
   // Reader the Header to determine the size of message to read
 
   HandleConnectionArg function_arg = *(HandleConnectionArg *)(arg);
+
+  pthread_detach(*function_arg.thread_id);
   int fd = function_arg.current_client_fd;
   pb_istream_t input = pb_istream_from_socket(fd);
 
@@ -39,12 +55,13 @@ void *handle_connection(void *arg) {
       break;
     }
 
-    printf("%s", chat.chat);
+    send_msg_to_other_client(function_arg.head, function_arg.current_client_fd,
+                             (const char *)chat.chat);
   }
   // Close the connection once done
   close(fd);
 
-  return NULL;
+  pthread_exit(0);
 }
 
 int main() {
@@ -58,7 +75,7 @@ int main() {
   memset(&server_addr, 0, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  server_addr.sin_port = htons(1234);
+  server_addr.sin_port = htons(PORT);
 
   if (bind(listenfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) !=
       0) {
@@ -71,7 +88,7 @@ int main() {
     return 1;
   }
 
-  Client **head = NULL;
+  Client *head = NULL;
 
   while (1) {
     connfd = accept(listenfd, NULL, NULL);
@@ -80,15 +97,16 @@ int main() {
       printf("Have trouble accept connection\n");
     }
 
-    // client *new_client = create_client(connfd);
-    // add_client(head, new_client);
+    Client *new_client = create_client(connfd);
+    pthread_t thread_id;
+    add_client(&head, new_client);
     HandleConnectionArg arg = {
-        .head = head,
+        .head = &head,
         .current_client_fd = connfd,
+        .thread_id = &thread_id,
     };
 
-    printf("A new client has connected\n");
-    pthread_t thread_id;
+    printf("A new client has connected with id %d\n", connfd);
 
     int check = pthread_create(&thread_id, NULL, handle_connection, &arg);
 
