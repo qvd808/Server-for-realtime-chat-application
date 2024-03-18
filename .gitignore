@@ -2,3 +2,5 @@
 *.pb.c 
 *.pb.h
 planning.txt
+server
+client
