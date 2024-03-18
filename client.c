@@ -96,15 +96,59 @@ void *write_output(void *arg) {
   return NULL;
 }
 
+void join(int argc, char *argv[]) {
+
+  if (argv[1] == NULL || strlen(argv[1]) == 0) {
+    printf("Please provide an id for the room\n");
+    return;
+  }
+
+  printf("argv 1 is %s\n", argv[1]);
+  printf("Joining a room\n");
+}
+void create(int argc, char *argv[]) {
+
+  if (argv[1] == NULL || strlen(argv[1]) == 0) {
+    printf("Please provide an id for the room\n");
+    return;
+  }
+
+  printf("Creating a romm\n");
+}
+void help(int argc, char *argv[]) {
+
+  if (argv[1] == NULL || strlen(argv[1]) == 0) {
+    printf("Please provide an id for the room\n");
+    return;
+  }
+
+  printf("Helpping\n");
+}
+
+typedef struct {
+  char *command;
+  void (*function)(int argc, char *argv[]);
+} DispatchEntry;
+
 void evaluate_cmd(char *buffer) {
 
   char *argv[10];
   int argc = 0;
   char *token;
 
-  token = strtok(buffer, " \0");
+  // char *newStr[11];
+  // memcpy(newStr, argv, 88);
+  //
+  // if (newStr[0] != NULL)
+  //   printf("The new string is %s and %s\n", newStr[0], newStr[0] + 7);
 
-  const char *key[] = {"create", "join", "help"};
+  token = strtok(buffer, " \n\0");
+
+  DispatchEntry dispatch_table[] = {
+      {"create", create},
+      {"join", join},
+      {"help", help},
+  };
 
   while (token != NULL) {
     argv[argc] = token;
@@ -112,7 +156,19 @@ void evaluate_cmd(char *buffer) {
     if (argc == 10) {
       printf("Can't not handle more than 10 argument\n");
     }
-    token = strtok(NULL, " \0");
+    token = strtok(NULL, " \n\0");
+  }
+
+  int numCommand = sizeof(dispatch_table) / sizeof(dispatch_table[0]);
+  for (int i = 0; i < numCommand; i++) {
+    if (strcmp(dispatch_table[i].command, argv[0]) == 0) {
+      dispatch_table[i].function(argc, argv);
+      break;
+    }
+  }
+
+  for (int i = 0; i < argc; i++) {
+    memset(argv[i], 0, strlen(argv[i]));
   }
 
   // create an enum to pass in
