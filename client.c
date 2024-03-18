@@ -20,7 +20,7 @@ typedef struct MessageChunk {
   char buffer[BUFFER_SIZE];
 } MessageChunk;
 
-void evaluate_cmd(const char *arg);
+void evaluate_cmd(char *arg);
 void *listen_input(void *arg);
 void *write_output(void *arg);
 
@@ -67,7 +67,7 @@ void *listen_input(void *arg) {
 
     int byte_read = read(STDIN_FILENO, chunk.buffer, BUFFER_SIZE - 1);
 
-    evaluate_cmd((const char *)(chunk.buffer));
+    evaluate_cmd((char *)(chunk.buffer));
     // ChatMessage chat = {};
     // strcpy(chat.chat, chunk.buffer);
     //
@@ -96,37 +96,21 @@ void *write_output(void *arg) {
   return NULL;
 }
 
-void evaluate_cmd(const char *buffer) {
+void evaluate_cmd(char *buffer) {
+
+  char *argv[10];
   int argc = 0;
+  char *token;
 
-  for (int i = 0; buffer[i] != '\0'; i++) {
-    if (buffer[i] == ' ') {
-      argc += 1;
-    }
+  token = strtok(buffer, " \0");
+
+  while (token != NULL) {
+    argv[argc] = token;
+    argc += 1;
+    token = strtok(NULL, " \0");
   }
 
-  char *argv[argc + 1];
-  int index = 0;
-  int last_index = 0;
-  for (int i = 0; buffer[i] != '\0'; i++) {
-    // if (buffer[i] == ' ') {
-    //   argv[index] = malloc(i - last_index + 1);
-    //   memcpy(argv[i], buffer + last_index, (size_t)(i - last_index + 1));
-    //   index += 1;
-    //   last_index += i;
-    // }
-    if (buffer[i] == ' ') {
-      argv[0] = (char *)malloc(i - last_index + 1);
-      printf("The size is %d", i - last_index + 1);
-      strncat(argv[0], buffer + last_index, i - last_index + 1);
-      // memcpy(argv[i], buffer + last_index, (size_t)(i - last_index + 1));
-      // index += 1;
-      // last_index += i;
-      break;
-    }
+  for (int i = 0; i < argc; i++) {
+    printf("Argument at index %d is %s\n", i, argv[i]);
   }
-
-  // for (int i = 0; i <= argc; i++) {
-  printf("The argument at index %d is %s\n", 0, argv[0]);
-  // }
 }
