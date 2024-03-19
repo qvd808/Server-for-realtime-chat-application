@@ -58,6 +58,18 @@ void *handle_connection(void *arg) {
 
     if (request_type.type == RequestType_CREATE_ROOM) {
       printf("Client request to create a room\n");
+
+      RequestCreateRoom request_room = RequestHeader_init_zero;
+      bzero(request_room.password, BUFFER_SIZE);
+
+      if (!pb_decode_delimited(&input, RequestCreateRoom_fields,
+                               &request_room)) {
+        perror("Decoding room password failed\n");
+        break;
+      }
+
+      printf("The password for the room is %s\n", request_room.password);
+
     } else if (request_type.type == RequestType_JOIN_ROOM) {
       printf("Client request to join a room\n");
     }

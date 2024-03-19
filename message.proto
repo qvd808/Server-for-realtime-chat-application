@@ -7,7 +7,7 @@ enum ResponseStatus {
   FAILED = 1;
 }
 
-message RequestCreateRoom { string password = 2; }
+message RequestCreateRoom { string password = 1; }
 
 message ResponseCreateRoom {
   uint32 room_id = 1;

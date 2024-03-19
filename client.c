@@ -135,14 +135,36 @@ void create(int argc, char *argv[], int fd) {
   }
 
   {
-    RequestCreateRoom request = RequestCreateRoom_init_zero;
-    strcpy(request.password, buffer);
+    RequestHeader request = RequestHeader_init_zero;
+    request.type = RequestType_CREATE_ROOM;
     pb_ostream_t output = pb_ostream_from_socket(fd);
 
-    if (!pb_encode_delimited(&output, RequestCreateRoom_fields, &request)) {
+    if (!pb_encode_delimited(&output, RequestHeader_fields, &request)) {
       perror("Encoidng the message failed!\n");
+      return;
+    }
+
+    RequestCreateRoom request_room = RequestCreateRoom_init_zero;
+    strcpy(request_room.password, buffer);
+    printf("The password for the room is %s\n", request_room.password);
+
+    if (!pb_encode_delimited(&output, RequestCreateRoom_fields,
+                             &request_room)) {
+      perror("Encoidng the message failed!\n");
+      return;
     }
   }
+
+  // {
+  //   ChatMessage chat;
+  //   strcpy(chat.chat, buffer);
+  //   pb_ostream_t output = pb_ostream_from_socket(fd);
+  //
+  //   if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
+  //     perror("Encoidng the message failed!\n");
+  //     return;
+  //   }
+  // }
 
   // {
   //   RequestCreateRoom request = RequestCreateRoom_init_zero;
