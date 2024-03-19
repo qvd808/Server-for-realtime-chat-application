@@ -1,5 +1,22 @@
 syntax = "proto3";
 
-message MessageHeader { uint32 size = 1; }
-
 message ChatMessage { string chat = 1; }
+
+enum ResponseStatus {
+  SUCCESS = 0;
+  FAILED = 1;
+}
+
+message RequestCreateRoom { string password = 2; }
+
+message ResponseCreateRoom {
+  uint32 room_id = 1;
+  ResponseStatus status = 2;
+}
+
+enum RequestType {
+  CREATE_ROOM = 0;
+  JOIN_ROOM = 1;
+}
+
+message RequestHeader { RequestType type = 1; }

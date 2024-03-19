@@ -17,11 +17,7 @@
 #include "common.h"
 #include "message.pb.h"
 
-typedef struct MessageChunk {
-  char buffer[BUFFER_SIZE];
-} MessageChunk;
-
-void evaluate_cmd(char *arg);
+void evaluate_cmd(char *arg, int fd);
 void *listen_input(void *arg);
 void *write_output(void *arg);
 
@@ -56,21 +52,22 @@ int main() {
   return 0;
 }
 
+// Listen to user command or message coming from terminal/STDIN_FILENO
 void *listen_input(void *arg) {
 
   int sockfd = *(int *)(arg);
-  pb_ostream_t output = pb_ostream_from_socket(sockfd);
 
   while (1) {
 
-    MessageChunk chunk;
-    memset(chunk.buffer, 0, BUFFER_SIZE);
+    char buffer[BUFFER_SIZE];
+    memset(buffer, 0, BUFFER_SIZE);
 
-    int byte_read = read(STDIN_FILENO, chunk.buffer, BUFFER_SIZE - 1);
+    int byte_read = read(STDIN_FILENO, buffer, BUFFER_SIZE - 1);
 
-    evaluate_cmd((char *)(chunk.buffer));
+    evaluate_cmd((char *)(buffer), sockfd);
+
     // ChatMessage chat = {};
-    // strcpy(chat.chat, chunk.buffer);
+    // strcpy(chat.chat, buffer);
     //
     // if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
     //   fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
@@ -80,6 +77,7 @@ void *listen_input(void *arg) {
   return NULL;
 }
 
+// Listen to chat message from server
 void *write_output(void *arg) {
 
   int sockfd = *(int *)(arg);
@@ -97,7 +95,7 @@ void *write_output(void *arg) {
   return NULL;
 }
 
-void join(int argc, char *argv[]) {
+void join(int argc, char *argv[], int fd) {
 
   if (argc != 2) {
     printf("Please provide the right format: join room_id\n");
@@ -119,25 +117,48 @@ void join(int argc, char *argv[]) {
   printf("Joining a room\n");
 }
 
-void create(int argc, char *argv[]) {
+void create(int argc, char *argv[], int fd) {
 
   if (argc != 1) {
     printf("Please provide the right format: create\n");
+    return;
   }
 
   printf("Please provide password for your room:\n");
-  char buffer[BUFFER_SIZE];
+  char *buffer = malloc(BUFFER_SIZE);
+  memset(buffer, 0, BUFFER_SIZE);
   int byte = read(STDIN_FILENO, buffer, BUFFER_SIZE);
 
   if (byte < 0) {
     printf("Error in creating a room\n");
     return;
   }
-  printf("the password is %s\n", buffer);
+
+  {
+    RequestCreateRoom request = RequestCreateRoom_init_zero;
+    strcpy(request.password, buffer);
+    pb_ostream_t output = pb_ostream_from_socket(fd);
+
+    if (!pb_encode_delimited(&output, RequestCreateRoom_fields, &request)) {
+      perror("Encoidng the message failed!\n");
+    }
+  }
+
+  // {
+  //   RequestCreateRoom request = RequestCreateRoom_init_zero;
+  //   strcpy(request.password, buffer);
+  //   pb_ostream_t output = pb_ostream_from_socket(fd);
+  //
+  //   if (!pb_encode_delimited(&output, RequestCreateRoom_fields, &request)) {
+  //     perror("Encoidng the message failed!\n");
+  //   }
+  // }
+
   printf("Creating a room\n");
+  free(buffer);
 }
 
-void help(int argc, char *argv[]) {
+void help(int argc, char *argv[], int fd) {
 
   if (argc != 1) {
     printf("Please provide the right format: create\n");
@@ -148,10 +169,10 @@ void help(int argc, char *argv[]) {
 
 typedef struct {
   char *command;
-  void (*function)(int argc, char *argv[]);
+  void (*function)(int argc, char *argv[], int fd);
 } DispatchEntry;
 
-void execute_dispatch_command(int argc, char *argv[]) {
+void execute_dispatch_command(int argc, char *argv[], int fd) {
 
   DispatchEntry dispatch_table[] = {
       {"create", create},
@@ -163,13 +184,13 @@ void execute_dispatch_command(int argc, char *argv[]) {
 
   for (int i = 0; i < numCommand; i++) {
     if (strcmp(dispatch_table[i].command, argv[0]) == 0) {
-      dispatch_table[i].function(argc, argv);
+      dispatch_table[i].function(argc, argv, fd);
       break;
     }
   }
 }
 
-void evaluate_cmd(char *buffer) {
+void evaluate_cmd(char *buffer, int fd) {
 
   char *argv[10];
   int argc = 0;
@@ -186,5 +207,5 @@ void evaluate_cmd(char *buffer) {
     token = strtok(NULL, " \n\0");
   }
 
-  execute_dispatch_command(argc, argv);
+  execute_dispatch_command(argc, argv, fd);
 }

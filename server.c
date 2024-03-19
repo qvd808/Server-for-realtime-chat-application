@@ -44,20 +44,38 @@ void *handle_connection(void *arg) {
 
   pthread_detach(*function_arg.thread_id);
   int fd = function_arg.current_client_fd;
+  // pb_istream_t input = pb_istream_from_socket(fd);
+
   pb_istream_t input = pb_istream_from_socket(fd);
 
   while (1) {
+    RequestHeader request_type = RequestHeader_init_zero;
 
-    ChatMessage chat = ChatMessage_init_zero;
-    bzero(chat.chat, BUFFER_SIZE);
-    if (!pb_decode_delimited(&input, ChatMessage_fields, &chat)) {
-      perror("Decode failed\n");
+    if (!pb_decode_delimited(&input, RequestHeader_fields, &request_type)) {
+      perror("Decoding the request type failed!\n");
       break;
     }
 
-    send_msg_to_other_client(function_arg.head, function_arg.current_client_fd,
-                             (const char *)chat.chat);
+    if (request_type.type == RequestType_CREATE_ROOM) {
+      printf("Client request to create a room\n");
+    } else if (request_type.type == RequestType_JOIN_ROOM) {
+      printf("Client request to join a room\n");
+    }
   }
+
+  // while (1) {
+  //
+  //   ChatMessage chat = ChatMessage_init_zero;
+  //   bzero(chat.chat, BUFFER_SIZE);
+  //   if (!pb_decode_delimited(&input, ChatMessage_fields, &chat)) {
+  //     perror("Decode failed\n");
+  //     break;
+  //   }
+  //
+  //   send_msg_to_other_client(function_arg.head,
+  //   function_arg.current_client_fd,
+  //                            (const char *)chat.chat);
+  // }
   // Close the connection once done
   close(fd);
 
