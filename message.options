@@ -2,3 +2,4 @@
 
 ChatMessage.chat max_size:256
 RequestCreateRoom.password max_size:256
+RequestJoinRoom.password max_size:256

@@ -42,10 +42,10 @@ int main() {
 
   pthread_t thread_read, thread_write;
   pthread_create(&thread_read, NULL, listen_input, &sockfd);
-  pthread_create(&thread_write, NULL, write_output, &sockfd);
+  // pthread_create(&thread_write, NULL, write_output, &sockfd);
 
   pthread_join(thread_read, NULL);
-  pthread_join(thread_write, NULL);
+  // pthread_join(thread_write, NULL);
 
   close(sockfd);
 
@@ -113,8 +113,40 @@ void join(int argc, char *argv[], int fd) {
     return;
   }
 
-  printf("The room id is %d\n", room_id);
-  printf("Joining a room\n");
+  {
+    pb_ostream_t output = pb_ostream_from_socket(fd);
+    RequestHeader request = RequestHeader_init_zero;
+    request.type = RequestType_JOIN_ROOM;
+
+    if (!pb_encode_delimited(&output, RequestHeader_fields, &request)) {
+      perror("Encoidng the message failed!\n");
+      return;
+    }
+
+    RequestJoinRoom request_room = RequestJoinRoom_init_zero;
+    request_room.room_id = 1;
+    strcpy(request_room.password, "1234");
+
+    if (!pb_encode_delimited(&output, RequestJoinRoom_fields, &request_room)) {
+      perror("Encoidng the message failed!\n");
+      return;
+    }
+  }
+
+  {
+    pb_istream_t input = pb_istream_from_socket(fd);
+    ResponseJoinRoom response = {};
+    if (!pb_decode_delimited(&input, ResponseJoinRoom_fields, &response)) {
+      perror("Encoidng the response failed!\n");
+      return;
+    }
+
+    if (response.status == ResponseStatus_FAILED) {
+      printf("Failed to join the room\n");
+    } else {
+      printf("Joining a room\n");
+    }
+  }
 }
 
 void create(int argc, char *argv[], int fd) {

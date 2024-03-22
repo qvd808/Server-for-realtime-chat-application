@@ -9,7 +9,17 @@ enum ResponseStatus {
 
 message RequestCreateRoom { string password = 1; }
 
+message RequestJoinRoom {
+  uint32 room_id = 1;
+  string password = 2;
+}
+
 message ResponseCreateRoom {
+  uint32 room_id = 1;
+  ResponseStatus status = 2;
+}
+
+message ResponseJoinRoom {
   uint32 room_id = 1;
   ResponseStatus status = 2;
 }

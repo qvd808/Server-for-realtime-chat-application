@@ -18,9 +18,10 @@
 #include "message.pb.h"
 
 typedef struct HandleConnectionArg {
-  Client **head;
   int current_client_fd;
   pthread_t *thread_id;
+  Room *room_head;
+
 } HandleConnectionArg;
 
 void send_msg_to_other_client(Client **head, int fd, const char *buffer) {
@@ -44,9 +45,9 @@ void *handle_connection(void *arg) {
 
   pthread_detach(*function_arg.thread_id);
   int fd = function_arg.current_client_fd;
-  // pb_istream_t input = pb_istream_from_socket(fd);
 
   pb_istream_t input = pb_istream_from_socket(fd);
+  pb_ostream_t output = pb_ostream_from_socket(fd);
 
   while (1) {
     RequestHeader request_type = RequestHeader_init_zero;
@@ -68,10 +69,58 @@ void *handle_connection(void *arg) {
         break;
       }
 
-      printf("The password for the room is %s\n", request_room.password);
+      Room *room = create_room();
+
+      Client *new_client = create_client(fd);
+      add_client(&room->head, new_client);
+      strncpy(room->password, request_room.password, BUFFER_SIZE);
+      room->num_of_clients += 1;
+      room->room_id = 1;
+
+      add_room(&function_arg.room_head, room);
+
+      printf("Create a room sucessfully\n");
 
     } else if (request_type.type == RequestType_JOIN_ROOM) {
-      printf("Client request to join a room\n");
+
+      RequestJoinRoom request_room = RequestJoinRoom_init_zero;
+      bzero(request_room.password, BUFFER_SIZE);
+
+      if (!pb_decode_delimited(&input, RequestJoinRoom_fields, &request_room)) {
+        perror("Decoding join room request failed\n");
+        break;
+      }
+      printf("Receive request to join a room with id %d\n",
+             request_room.room_id);
+
+      Room *temp = function_arg.room_head;
+
+      // while (temp != NULL) {
+      //   if (temp->room_id == request_room.room_id) {
+      //     if (strcmp(temp->password, request_room.password) == 0) {
+      //       printf("Provided the right password\n");
+      //       break;
+      //     } else {
+      //       printf("Provided the wrong password\n");
+      //       break;
+      //     }
+      //   }
+      //   temp = temp->next;
+      // }
+
+      {
+        ResponseJoinRoom response_room = ResponseJoinRoom_init_zero;
+        response_room.status = ResponseStatus_FAILED;
+        response_room.room_id = 1;
+        printf("assigned status\n");
+
+        if (!pb_encode_delimited(&output, ResponseJoinRoom_fields,
+                                 &response_room)) {
+          perror("Failed to send response join room to client\n");
+          break;
+        }
+        printf("Finished encode\n");
+      }
     }
   }
 
@@ -118,8 +167,6 @@ int main() {
     return 1;
   }
 
-  Client *head = NULL;
-
   while (1) {
     connfd = accept(listenfd, NULL, NULL);
 
@@ -127,13 +174,11 @@ int main() {
       printf("Have trouble accept connection\n");
     }
 
-    Client *new_client = create_client(connfd);
     pthread_t thread_id;
-    add_client(&head, new_client);
     HandleConnectionArg arg = {
-        .head = &head,
         .current_client_fd = connfd,
         .thread_id = &thread_id,
+        .room_head = NULL,
     };
 
     printf("A new client has connected with id %d\n", connfd);
