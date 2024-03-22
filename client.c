@@ -97,13 +97,18 @@ void *write_output(void *arg) {
 
 void join(int argc, char *argv[], int fd) {
 
-  if (argc != 2) {
+  if (argc != 3) {
     printf("Please provide the right format: join room_id\n");
     return;
   }
 
   if (argv[1] == NULL || strlen(argv[1]) == 0) {
     printf("Please provide an id for the room\n");
+    return;
+  }
+
+  if (argv[2] == NULL || strlen(argv[1]) == 0) {
+    printf("Please provide password for the room\n");
     return;
   }
 
@@ -125,7 +130,7 @@ void join(int argc, char *argv[], int fd) {
 
     RequestJoinRoom request_room = RequestJoinRoom_init_zero;
     request_room.room_id = room_id;
-    strcpy(request_room.password, "1234");
+    strcpy(request_room.password, argv[2]);
     printf("Request room password is %s\n", request_room.password);
 
     if (!pb_encode_delimited(&output, RequestJoinRoom_fields, &request_room)) {

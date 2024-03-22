@@ -92,36 +92,39 @@ void *handle_connection(void *arg) {
              request_room.room_id);
 
       Room *temp = *function_arg.room_head;
+      int send_response = 0;
 
       while (temp != NULL) {
         if (temp->room_id == request_room.room_id) {
           if (strncmp(request_room.password, temp->password,
                       strlen(request_room.password)) == 0) {
-            printf("Provided the right password\n");
-            break;
-          } else {
-            printf("The room password is %s\n", temp->password);
-            printf("The provided password is %s\n", request_room.password);
-            printf("Provided the wrong password\n");
+            {
+              ResponseJoinRoom response_room = ResponseJoinRoom_init_zero;
+              response_room.status = ResponseStatus_SUCCESS;
+
+              if (!pb_encode_delimited(&output, ResponseJoinRoom_fields,
+                                       &response_room)) {
+                perror("Failed to send response join room to client\n");
+                break;
+              }
+            }
+            send_response = 1;
             break;
           }
         }
-        printf("The current room id is %d\n", temp->room_id);
+        // printf("The current room id is %d\n", temp->room_id);
         temp = temp->next;
       }
 
-      {
+      if (!send_response) {
         ResponseJoinRoom response_room = ResponseJoinRoom_init_zero;
         response_room.status = ResponseStatus_FAILED;
-        response_room.room_id = 1;
-        printf("assigned status\n");
 
         if (!pb_encode_delimited(&output, ResponseJoinRoom_fields,
                                  &response_room)) {
           perror("Failed to send response join room to client\n");
           break;
         }
-        printf("Finished encode\n");
       }
     }
   }
