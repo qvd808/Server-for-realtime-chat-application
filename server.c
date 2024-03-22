@@ -52,7 +52,7 @@ void *handle_connection(void *arg) {
   while (1) {
     RequestHeader request_type = RequestHeader_init_zero;
 
-    if (!pb_decode_delimited(&input, RequestHeader_fields, &request_type)) {
+    if (pb_decode_delimited(&input, RequestHeader_fields, &request_type)) {
       perror("Decoding the request type failed!\n");
       break;
     }
@@ -145,7 +145,8 @@ void *handle_connection(void *arg) {
   // Close the connection once done
   close(fd);
 
-  pthread_exit(0);
+  pthread_exit(NULL);
+  return NULL;
 }
 
 int main() {
