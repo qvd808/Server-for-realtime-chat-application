@@ -11,7 +11,7 @@ struct Client {
 typedef struct Client Client;
 
 typedef struct Room {
-  Client *head;
+  Client **head;
   char password[BUFFER_SIZE];
   int num_of_clients;
   int room_id;
@@ -21,7 +21,7 @@ typedef struct Room {
 Client *create_client(int fd);
 void add_client(Client **head, Client *client);
 
-Room *create_room();
+Room *create_room(Client *client);
 void add_room(Room **head, Room *room);
 
 #endif

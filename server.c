@@ -69,13 +69,11 @@ void *handle_connection(void *arg) {
         break;
       }
 
-      Room *room = create_room();
-
       Client *new_client = create_client(fd);
-      add_client(&room->head, new_client);
+      Room *room = create_room(new_client);
+      // printf("The head of the room is %p\n", room->head);
       strncpy(room->password, request_room.password, BUFFER_SIZE);
-      room->num_of_clients += 1;
-      room->room_id = 1;
+      printf("The created room password is %s", room->password);
 
       add_room(function_arg.room_head, room);
 
@@ -97,14 +95,18 @@ void *handle_connection(void *arg) {
 
       while (temp != NULL) {
         if (temp->room_id == request_room.room_id) {
-          if (strcmp(temp->password, request_room.password) == 0) {
+          if (strncmp(request_room.password, temp->password,
+                      strlen(request_room.password)) == 0) {
             printf("Provided the right password\n");
             break;
           } else {
+            printf("The room password is %s\n", temp->password);
+            printf("The provided password is %s\n", request_room.password);
             printf("Provided the wrong password\n");
             break;
           }
         }
+        printf("The current room id is %d\n", temp->room_id);
         temp = temp->next;
       }
 

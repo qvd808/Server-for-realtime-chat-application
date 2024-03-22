@@ -124,8 +124,9 @@ void join(int argc, char *argv[], int fd) {
     }
 
     RequestJoinRoom request_room = RequestJoinRoom_init_zero;
-    request_room.room_id = 1;
+    request_room.room_id = room_id;
     strcpy(request_room.password, "1234");
+    printf("Request room password is %s\n", request_room.password);
 
     if (!pb_encode_delimited(&output, RequestJoinRoom_fields, &request_room)) {
       perror("Encoidng the message failed!\n");

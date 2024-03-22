@@ -32,13 +32,17 @@ void add_client(Client **head, Client *client) {
   }
 }
 
-Room *create_room() {
+Room *create_room(Client *client) {
   Room *new_room = (Room *)malloc(sizeof(*new_room));
 
   if (new_room == NULL) {
     printf("Failed to allocate new room\n");
     return NULL;
   }
+
+  new_room->head = &client;
+  new_room->next = NULL;
+  new_room->num_of_clients = 1;
 
   return new_room;
 }
@@ -47,13 +51,17 @@ void add_room(Room **head, Room *room) {
   if (*head == NULL) {
     *head = room;
     (*head)->next = NULL;
+    (*head)->room_id = 1;
   } else {
     Room *temp = *head;
 
+    int i = temp->room_id;
     while (temp->next != NULL) {
       temp = temp->next;
+      i = temp->room_id;
     }
 
     temp->next = room;
+    temp->next->room_id = i + 1;
   }
 }
