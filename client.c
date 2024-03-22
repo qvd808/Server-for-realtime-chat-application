@@ -90,10 +90,41 @@ void *write_output(void *arg) {
 
 void join_room_session(int fd) {
 
-  pb_ostream_t output = pb_ostream_from_socket(fd);
-  pthread_t thread_write;
+  // pb_ostream_t output = pb_ostream_from_socket(fd);
+  // pthread_t thread_write;
 
-  pthread_create(&thread_write, NULL, write_output, NULL);
+  // const char *CLEAR_SCREEN_ANSI = "\e[1;1H\e[2J";
+  // write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 12);
+
+  pb_ostream_t output = pb_ostream_from_socket(fd);
+
+  {
+    while (1) {
+
+      {
+        RequestHeader request = RequestHeader_init_zero;
+        request.type = RequestType_SEND_MESSAGE;
+
+        if (!pb_encode_delimited(&output, RequestHeader_fields, &request)) {
+          perror("Encoidng the message failed!\n");
+          return;
+        }
+      }
+
+      char buffer[BUFFER_SIZE];
+      bzero(buffer, BUFFER_SIZE);
+
+      int byte = read(STDIN_FILENO, buffer, BUFFER_SIZE - 1);
+
+      ChatMessage chat;
+      strcpy(chat.chat, buffer);
+
+      if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
+        fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
+      }
+    }
+  }
+  // pthread_create(&thread_write, NULL, write_output, NULL);
 
   // while (1) {
   //   char buffer[BUFFER_SIZE];
@@ -108,7 +139,7 @@ void join_room_session(int fd) {
   //   }
   // }
 
-  pthread_join(thread_write, NULL);
+  // pthread_join(thread_write, NULL);
 }
 
 void join(int argc, char *argv[], int fd) {

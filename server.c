@@ -52,7 +52,7 @@ void *handle_connection(void *arg) {
   while (1) {
     RequestHeader request_type = RequestHeader_init_zero;
 
-    if (pb_decode_delimited(&input, RequestHeader_fields, &request_type)) {
+    if (!pb_decode_delimited(&input, RequestHeader_fields, &request_type)) {
       perror("Decoding the request type failed!\n");
       break;
     }
@@ -126,22 +126,20 @@ void *handle_connection(void *arg) {
           break;
         }
       }
+    } else if (request_type.type == RequestType_SEND_MESSAGE) {
+      printf("Client request to send message\n");
+      ChatMessage chat = ChatMessage_init_zero;
+      bzero(chat.chat, BUFFER_SIZE);
+      if (!pb_decode_delimited(&input, ChatMessage_fields, &chat)) {
+        perror("Decode failed\n");
+        break;
+      }
+      printf("The message is %s\n", chat.chat);
     }
   }
 
   // while (1) {
   //
-  //   ChatMessage chat = ChatMessage_init_zero;
-  //   bzero(chat.chat, BUFFER_SIZE);
-  //   if (!pb_decode_delimited(&input, ChatMessage_fields, &chat)) {
-  //     perror("Decode failed\n");
-  //     break;
-  //   }
-  //
-  //   send_msg_to_other_client(function_arg.head,
-  //   function_arg.current_client_fd,
-  //                            (const char *)chat.chat);
-  // }
   // Close the connection once done
   close(fd);
 
