@@ -20,7 +20,7 @@
 typedef struct HandleConnectionArg {
   int current_client_fd;
   pthread_t *thread_id;
-  Room *room_head;
+  Room **room_head;
 
 } HandleConnectionArg;
 
@@ -77,7 +77,7 @@ void *handle_connection(void *arg) {
       room->num_of_clients += 1;
       room->room_id = 1;
 
-      add_room(&function_arg.room_head, room);
+      add_room(function_arg.room_head, room);
 
       printf("Create a room sucessfully\n");
 
@@ -93,20 +93,20 @@ void *handle_connection(void *arg) {
       printf("Receive request to join a room with id %d\n",
              request_room.room_id);
 
-      Room *temp = function_arg.room_head;
+      Room *temp = *function_arg.room_head;
 
-      // while (temp != NULL) {
-      //   if (temp->room_id == request_room.room_id) {
-      //     if (strcmp(temp->password, request_room.password) == 0) {
-      //       printf("Provided the right password\n");
-      //       break;
-      //     } else {
-      //       printf("Provided the wrong password\n");
-      //       break;
-      //     }
-      //   }
-      //   temp = temp->next;
-      // }
+      while (temp != NULL) {
+        if (temp->room_id == request_room.room_id) {
+          if (strcmp(temp->password, request_room.password) == 0) {
+            printf("Provided the right password\n");
+            break;
+          } else {
+            printf("Provided the wrong password\n");
+            break;
+          }
+        }
+        temp = temp->next;
+      }
 
       {
         ResponseJoinRoom response_room = ResponseJoinRoom_init_zero;
@@ -167,6 +167,7 @@ int main() {
     return 1;
   }
 
+  Room *head = NULL;
   while (1) {
     connfd = accept(listenfd, NULL, NULL);
 
@@ -178,7 +179,7 @@ int main() {
     HandleConnectionArg arg = {
         .current_client_fd = connfd,
         .thread_id = &thread_id,
-        .room_head = NULL,
+        .room_head = &head,
     };
 
     printf("A new client has connected with id %d\n", connfd);
