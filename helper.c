@@ -32,7 +32,7 @@ void add_client(Client **head, Client *client) {
   }
 }
 
-Room *create_room(Client *client) {
+Room *create_room() {
   Room *new_room = (Room *)malloc(sizeof(*new_room));
 
   if (new_room == NULL) {
@@ -40,7 +40,8 @@ Room *create_room(Client *client) {
     return NULL;
   }
 
-  new_room->head = &client;
+  new_room->head = malloc(sizeof(new_room->head));
+  *(new_room->head) = NULL;
   new_room->next = NULL;
   new_room->num_of_clients = 1;
 

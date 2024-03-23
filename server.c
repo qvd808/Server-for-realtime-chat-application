@@ -27,12 +27,13 @@ typedef struct HandleConnectionArg {
 void send_msg_to_other_client(Client **head, int fd, const char *buffer) {
   Client *temp = *head;
 
-  // printf("The current client is %d, and there message is %s", fd, buffer);
+  printf("The current client is %d, and there message is %s", fd, buffer);
 
   while (temp != NULL) {
     if (temp->fd != fd) {
       write(temp->fd, buffer, BUFFER_SIZE);
     }
+    printf("the current client is %d and address is %p\n", temp->fd, temp);
     temp = temp->next;
   }
 }
@@ -69,15 +70,16 @@ void *handle_connection(void *arg) {
         break;
       }
 
-      Client *new_client = create_client(fd);
-      Room *room = create_room(new_client);
+      Room *room = create_room();
       // printf("The head of the room is %p\n", room->head);
       strncpy(room->password, request_room.password, BUFFER_SIZE);
       printf("The created room password is %s", room->password);
 
       add_room(function_arg.room_head, room);
 
-      printf("Create a room sucessfully\n");
+      // printf("Create a room sucessfully, the room address is %p, the client "
+      //        "address is %p, pointer to the client is %p\n",
+      //        room, *(room->head), room->head);
 
     } else if (request_type.type == RequestType_JOIN_ROOM) {
 
@@ -99,6 +101,10 @@ void *handle_connection(void *arg) {
           if (strncmp(request_room.password, temp->password,
                       strlen(request_room.password)) == 0) {
             {
+              Client *new_client =
+                  create_client(function_arg.current_client_fd);
+              add_client((*function_arg.room_head)->head, new_client);
+
               ResponseJoinRoom response_room = ResponseJoinRoom_init_zero;
               response_room.status = ResponseStatus_SUCCESS;
 
@@ -112,7 +118,6 @@ void *handle_connection(void *arg) {
             break;
           }
         }
-        // printf("The current room id is %d\n", temp->room_id);
         temp = temp->next;
       }
 
@@ -134,7 +139,22 @@ void *handle_connection(void *arg) {
         perror("Decode failed\n");
         break;
       }
-      printf("The message is %s\n", chat.chat);
+      Room *temp = *function_arg.room_head;
+      printf("The current client fd is %d and the client head is %p and the "
+             "room is %p and the first client is %p\n",
+             function_arg.current_client_fd, temp->head, temp, *(temp->head));
+      // write(function_arg.current_client_fd, "Hello World\n", 13);
+      printf("The room id is %d and the message id is %d\n", temp->room_id,
+             chat.room_id);
+      while (temp != NULL) {
+        if (temp->room_id == chat.room_id) {
+
+          send_msg_to_other_client(temp->head, function_arg.current_client_fd,
+                                   (const char *)chat.chat);
+          break;
+        }
+        temp = temp->next;
+      }
     }
   }
 

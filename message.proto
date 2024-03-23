@@ -1,6 +1,9 @@
 syntax = "proto3";
 
-message ChatMessage { string chat = 1; }
+message ChatMessage {
+  string chat = 1;
+  uint32 room_id = 2;
+}
 
 enum ResponseStatus {
   SUCCESS = 0;

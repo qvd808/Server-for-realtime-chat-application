@@ -21,7 +21,7 @@ typedef struct Room {
 Client *create_client(int fd);
 void add_client(Client **head, Client *client);
 
-Room *create_room(Client *client);
+Room *create_room();
 void add_room(Room **head, Room *room);
 
 #endif

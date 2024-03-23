@@ -88,15 +88,15 @@ void *write_output(void *arg) {
   return NULL;
 }
 
-void join_room_session(int fd) {
-
-  // pb_ostream_t output = pb_ostream_from_socket(fd);
-  // pthread_t thread_write;
+void join_room_session(int fd, int room_id) {
 
   // const char *CLEAR_SCREEN_ANSI = "\e[1;1H\e[2J";
   // write(STDOUT_FILENO, CLEAR_SCREEN_ANSI, 12);
 
   pb_ostream_t output = pb_ostream_from_socket(fd);
+
+  pthread_t thread_write;
+  pthread_create(&thread_write, NULL, write_output, (void *)&fd);
 
   {
     while (1) {
@@ -118,28 +118,15 @@ void join_room_session(int fd) {
 
       ChatMessage chat;
       strcpy(chat.chat, buffer);
+      chat.room_id = room_id;
 
       if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
         fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
       }
     }
   }
-  // pthread_create(&thread_write, NULL, write_output, NULL);
 
-  // while (1) {
-  //   char buffer[BUFFER_SIZE];
-  //   memset(buffer, 0, BUFFER_SIZE);
-  //   int byte = read(STDIN_FILENO, buffer, BUFFER_SIZE - 1);
-  //
-  //   ChatMessage chat;
-  //   strcpy(chat.chat, buffer);
-  //
-  //   if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
-  //     fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
-  //   }
-  // }
-
-  // pthread_join(thread_write, NULL);
+  pthread_join(thread_write, NULL);
 }
 
 void join(int argc, char *argv[], int fd) {
@@ -198,7 +185,7 @@ void join(int argc, char *argv[], int fd) {
       printf("Failed to join the room\n");
     } else {
       printf("Joining a room\n");
-      join_room_session(fd);
+      join_room_session(fd, room_id);
     }
   }
 }
