@@ -2,8 +2,8 @@
 #include <dirent.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/socket.h>
@@ -33,7 +33,7 @@ void send_msg_to_other_client(Client **head, int fd, const char *buffer) {
     if (temp->fd != fd) {
       write(temp->fd, buffer, BUFFER_SIZE);
     }
-    printf("the current client is %d and address is %p\n", temp->fd, temp);
+    // printf("the current client is %d and address is %p\n", temp->fd, temp);
     temp = temp->next;
   }
 }
@@ -52,6 +52,18 @@ void *handle_connection(void *arg) {
 
   while (1) {
     RequestHeader request_type = RequestHeader_init_zero;
+    if (*function_arg.room_head != NULL) {
+      Room *current_room = *(function_arg.room_head);
+      if (current_room->head != NULL) {
+        // printf("the point is %p\n", current_room->head);
+        Client *head = *current_room->head;
+
+        while (head != NULL) {
+          printf("Client id is %d\n", head->fd);
+          head = head->next;
+        }
+      }
+    }
 
     if (!pb_decode_delimited(&input, RequestHeader_fields, &request_type)) {
       perror("Decoding the request type failed!\n");
@@ -77,7 +89,8 @@ void *handle_connection(void *arg) {
 
       add_room(function_arg.room_head, room);
 
-      // printf("Create a room sucessfully, the room address is %p, the client "
+      // printf("Create a room sucessfully, the room address is %p, the client
+      // "
       //        "address is %p, pointer to the client is %p\n",
       //        room, *(room->head), room->head);
 
@@ -140,21 +153,40 @@ void *handle_connection(void *arg) {
         break;
       }
       Room *temp = *function_arg.room_head;
-      printf("The current client fd is %d and the client head is %p and the "
-             "room is %p and the first client is %p\n",
-             function_arg.current_client_fd, temp->head, temp, *(temp->head));
-      // write(function_arg.current_client_fd, "Hello World\n", 13);
-      printf("The room id is %d and the message id is %d\n", temp->room_id,
-             chat.room_id);
-      if (strncmp(chat.chat, ">exit<", 6) == 0) {
-        write(function_arg.current_client_fd, "Exit session for \n", 18);
-        break;
-      }
+
       while (temp != NULL) {
         if (temp->room_id == chat.room_id) {
 
-          send_msg_to_other_client(temp->head, function_arg.current_client_fd,
-                                   (const char *)chat.chat);
+          if (strncmp(chat.chat, ">exit<", 6) == 0) {
+            write(function_arg.current_client_fd, "Exit session for \n", 18);
+            //
+            Client *traverse = *temp->head;
+            //
+            //   if (traverse == NULL) {
+            //     break;
+            //   } else if (traverse->fd == function_arg.current_client_fd) {
+            //     Client *current_client = traverse;
+            //     if (traverse->next != NULL) {
+            //       temp->head = &(traverse->next);
+            //     } else {
+            //       temp->head = NULL;
+            //     }
+            //     traverse->next = NULL;
+            //     free(current_client);
+            //
+            //   } else {
+            while (traverse->next != NULL) {
+              if (traverse->next->fd == function_arg.current_client_fd) {
+                Client *current_client = traverse->next;
+                traverse->next = current_client->next;
+                free(current_client);
+              }
+            }
+            //   }
+          } else {
+            send_msg_to_other_client(temp->head, function_arg.current_client_fd,
+                                     (const char *)chat.chat);
+          }
           break;
         }
         temp = temp->next;
