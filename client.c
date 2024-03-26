@@ -21,6 +21,11 @@ void evaluate_cmd(char *arg, int fd);
 void *listen_input(void *arg);
 void *write_output(void *arg);
 
+typedef struct ThreadWriteArg {
+  int fd;
+  int *running;
+} ThreadWriteArg;
+
 int main() {
 
   int sockfd;
@@ -73,10 +78,11 @@ void *listen_input(void *arg) {
 // Listen to chat message from server
 void *write_output(void *arg) {
 
-  int sockfd = *(int *)(arg);
+  ThreadWriteArg function_arg = *(ThreadWriteArg *)(arg);
+  int sockfd = function_arg.fd;
   char buffer[BUFFER_SIZE];
 
-  while (1) {
+  while (*(function_arg.running)) {
     bzero(buffer, BUFFER_SIZE);
     int byte = read(sockfd, buffer, BUFFER_SIZE - 1);
     if (byte < 0) {
@@ -95,27 +101,32 @@ void join_room_session(int fd, int room_id) {
 
   pb_ostream_t output = pb_ostream_from_socket(fd);
 
+  int running = 1;
+  ThreadWriteArg arg = {
+      .fd = fd,
+      .running = &running,
+  };
+
   pthread_t thread_write;
-  pthread_create(&thread_write, NULL, write_output, (void *)&fd);
+  pthread_create(&thread_write, NULL, write_output, (void *)&arg);
 
-  {
-    while (1) {
+  while (1) {
 
-      {
-        RequestHeader request = RequestHeader_init_zero;
-        request.type = RequestType_SEND_MESSAGE;
+    {
+      RequestHeader request = RequestHeader_init_zero;
+      request.type = RequestType_SEND_MESSAGE;
 
-        if (!pb_encode_delimited(&output, RequestHeader_fields, &request)) {
-          perror("Encoidng the message failed!\n");
-          return;
-        }
+      if (!pb_encode_delimited(&output, RequestHeader_fields, &request)) {
+        perror("Encoidng the message failed!\n");
+        return;
       }
+    }
 
-      char buffer[BUFFER_SIZE];
-      bzero(buffer, BUFFER_SIZE);
+    char buffer[BUFFER_SIZE];
+    bzero(buffer, BUFFER_SIZE);
 
-      int byte = read(STDIN_FILENO, buffer, BUFFER_SIZE - 1);
-
+    int byte = read(STDIN_FILENO, buffer, BUFFER_SIZE - 1);
+    if (strncmp(buffer, ">exit<", 6) == 0) {
       ChatMessage chat;
       strcpy(chat.chat, buffer);
       chat.room_id = room_id;
@@ -123,10 +134,21 @@ void join_room_session(int fd, int room_id) {
       if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
         fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
       }
+      running = 0;
+      break;
+    }
+
+    ChatMessage chat;
+    strcpy(chat.chat, buffer);
+    chat.room_id = room_id;
+
+    if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
+      fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
     }
   }
 
   pthread_join(thread_write, NULL);
+  printf("Exit the chat room\n");
 }
 
 void join(int argc, char *argv[], int fd) {
@@ -283,6 +305,9 @@ void execute_dispatch_command(int argc, char *argv[], int fd) {
       break;
     }
   }
+
+  // execute help if nothing can be found
+  dispatch_table[2].function(argc, argv, fd);
 }
 
 void evaluate_cmd(char *buffer, int fd) {

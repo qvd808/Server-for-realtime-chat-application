@@ -146,6 +146,10 @@ void *handle_connection(void *arg) {
       // write(function_arg.current_client_fd, "Hello World\n", 13);
       printf("The room id is %d and the message id is %d\n", temp->room_id,
              chat.room_id);
+      if (strncmp(chat.chat, ">exit<", 6) == 0) {
+        write(function_arg.current_client_fd, "Exit session for \n", 18);
+        break;
+      }
       while (temp != NULL) {
         if (temp->room_id == chat.room_id) {
 
