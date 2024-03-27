@@ -44,7 +44,7 @@ void *handle_connection(void *arg) {
 
   HandleConnectionArg function_arg = *(HandleConnectionArg *)(arg);
 
-  pthread_detach(*function_arg.thread_id);
+  // pthread_detach(*function_arg.thread_id);
   int fd = function_arg.current_client_fd;
 
   pb_istream_t input = pb_istream_from_socket(fd);
@@ -161,27 +161,29 @@ void *handle_connection(void *arg) {
             write(function_arg.current_client_fd, "Exit session for \n", 18);
             //
             Client *traverse = *temp->head;
-            //
-            //   if (traverse == NULL) {
-            //     break;
-            //   } else if (traverse->fd == function_arg.current_client_fd) {
-            //     Client *current_client = traverse;
-            //     if (traverse->next != NULL) {
-            //       temp->head = &(traverse->next);
-            //     } else {
-            //       temp->head = NULL;
-            //     }
-            //     traverse->next = NULL;
-            //     free(current_client);
-            //
-            //   } else {
-            while (traverse->next != NULL) {
-              if (traverse->next->fd == function_arg.current_client_fd) {
-                Client *current_client = traverse->next;
-                traverse->next = current_client->next;
-                free(current_client);
+
+            if (traverse == NULL) {
+              break;
+            } else if (traverse->fd == function_arg.current_client_fd) {
+              Client *current_client = traverse;
+              if (traverse->next != NULL) {
+                temp->head = &(traverse->next);
+              } else {
+                *(temp->head) = NULL;
+                Room *temp_room = *function_arg.room_head;
+                free(temp_room);
               }
+              // traverse->next = NULL;
+              free(current_client);
             }
+            //   } else {
+            // while (traverse->next != NULL) {
+            //   if (traverse->next->fd == function_arg.current_client_fd) {
+            //     Client *current_client = traverse->next;
+            //     traverse->next = current_client->next;
+            //     free(current_client);
+            //   }
+            // }
             //   }
           } else {
             send_msg_to_other_client(temp->head, function_arg.current_client_fd,
@@ -228,27 +230,28 @@ int main() {
   }
 
   Room *head = NULL;
-  while (1) {
-    connfd = accept(listenfd, NULL, NULL);
+  // while (1) {
+  connfd = accept(listenfd, NULL, NULL);
 
-    if (connfd == -1) {
-      printf("Have trouble accept connection\n");
-    }
-
-    pthread_t thread_id;
-    HandleConnectionArg arg = {
-        .current_client_fd = connfd,
-        .thread_id = &thread_id,
-        .room_head = &head,
-    };
-
-    printf("A new client has connected with id %d\n", connfd);
-
-    int check = pthread_create(&thread_id, NULL, handle_connection, &arg);
-
-    if (check != 0) {
-      printf("Failed to handle connection\n");
-    }
+  if (connfd == -1) {
+    printf("Have trouble accept connection\n");
   }
+
+  pthread_t thread_id;
+  HandleConnectionArg arg = {
+      .current_client_fd = connfd,
+      .thread_id = &thread_id,
+      .room_head = &head,
+  };
+
+  printf("A new client has connected with id %d\n", connfd);
+
+  int check = pthread_create(&thread_id, NULL, handle_connection, &arg);
+
+  if (check != 0) {
+    printf("Failed to handle connection\n");
+  }
+  // }
+  pthread_join(thread_id, NULL);
   return 0;
 }
