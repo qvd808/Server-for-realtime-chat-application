@@ -44,14 +44,16 @@ void *handle_connection(void *arg) {
 
   HandleConnectionArg function_arg = *(HandleConnectionArg *)(arg);
 
-  // pthread_detach(*function_arg.thread_id);
+  pthread_detach(*function_arg.thread_id);
   int fd = function_arg.current_client_fd;
 
   pb_istream_t input = pb_istream_from_socket(fd);
   pb_ostream_t output = pb_ostream_from_socket(fd);
 
   while (1) {
+
     RequestHeader request_type = RequestHeader_init_zero;
+
     // if (*function_arg.room_head != NULL) {
     //   Room *current_room = *(function_arg.room_head);
     //   if (current_room->head != NULL) {
@@ -83,16 +85,11 @@ void *handle_connection(void *arg) {
       }
 
       Room *room = create_room();
-      // printf("The head of the room is %p\n", room->head);
+
       strncpy(room->password, request_room.password, BUFFER_SIZE);
       printf("The created room password is %s", room->password);
 
       add_room(function_arg.room_head, room);
-
-      // printf("Create a room sucessfully, the room address is %p, the client
-      // "
-      //        "address is %p, pointer to the client is %p\n",
-      //        room, *(room->head), room->head);
 
     } else if (request_type.type == RequestType_JOIN_ROOM) {
 
@@ -107,6 +104,7 @@ void *handle_connection(void *arg) {
              request_room.room_id);
 
       Room *temp = *function_arg.room_head;
+      printf("The address of temp is %p\n", temp);
       int send_response = 0;
 
       while (temp != NULL) {
@@ -144,7 +142,9 @@ void *handle_connection(void *arg) {
           break;
         }
       }
+
     } else if (request_type.type == RequestType_SEND_MESSAGE) {
+
       printf("Client request to send message\n");
       ChatMessage chat = ChatMessage_init_zero;
       bzero(chat.chat, BUFFER_SIZE);
@@ -168,28 +168,35 @@ void *handle_connection(void *arg) {
               Client *current_client = traverse;
 
               if (traverse->next != NULL) {
-                temp->head = &(traverse->next);
+                // temp->head = &(traverse->next);
+                traverse = traverse->next;
+                (*function_arg.room_head)->head = &traverse;
+                // current_client->next = NULL;
+
               } else {
                 Room *temp_room = *function_arg.room_head;
-                free(temp_room->head);
+                // free(temp_room->head);
                 // temp_room->head = NULL;
                 free(temp_room);
                 // temp_room = NULL;
-                Room *new_room_head = NULL;
-                function_arg.room_head = &new_room_head;
+                *(function_arg.room_head) = NULL;
+                // Room *new_room_head = NULL;
+                // function_arg.room_head = &new_room_head;
               }
+
+              // current_client->next = NULL;
               free(current_client);
-              // printf("The pointer is %p\n", (*function_arg.room_head)->head);
+              current_client = NULL;
+              // }
+            } else {
+              while (traverse->next != NULL) {
+                if (traverse->next->fd == function_arg.current_client_fd) {
+                  Client *current_client = traverse->next;
+                  traverse->next = current_client->next;
+                  free(current_client);
+                }
+              }
             }
-            //   } else {
-            // while (traverse->next != NULL) {
-            //   if (traverse->next->fd == function_arg.current_client_fd) {
-            //     Client *current_client = traverse->next;
-            //     traverse->next = current_client->next;
-            //     free(current_client);
-            //   }
-            // }
-            //   }
           } else {
             send_msg_to_other_client(temp->head, function_arg.current_client_fd,
                                      (const char *)chat.chat);
@@ -201,11 +208,10 @@ void *handle_connection(void *arg) {
     }
   }
 
-  // while (1) {
-  //
-  // Close the connection once done
-  close(fd);
+  // Need a ways to free all the room allocated if the client cut of the
+  // conenction midway
 
+  close(fd);
   pthread_exit(NULL);
   return NULL;
 }
@@ -234,29 +240,31 @@ int main() {
     return 1;
   }
 
-  Room *head = NULL;
-  // while (1) {
-  connfd = accept(listenfd, NULL, NULL);
+  Room *room_head = NULL;
 
-  if (connfd == -1) {
-    printf("Have trouble accept connection\n");
+  while (1) {
+    connfd = accept(listenfd, NULL, NULL);
+
+    if (connfd == -1) {
+      printf("Have trouble accept connection\n");
+    }
+
+    pthread_t thread_id;
+    HandleConnectionArg arg = {
+        .current_client_fd = connfd,
+        .thread_id = &thread_id,
+        .room_head = &room_head,
+    };
+
+    printf("A new client has connected with id %d\n", connfd);
+
+    int check = pthread_create(&thread_id, NULL, handle_connection, &arg);
+
+    if (check != 0) {
+      printf("Failed to handle connection\n");
+    }
   }
 
-  pthread_t thread_id;
-  HandleConnectionArg arg = {
-      .current_client_fd = connfd,
-      .thread_id = &thread_id,
-      .room_head = &head,
-  };
-
-  printf("A new client has connected with id %d\n", connfd);
-
-  int check = pthread_create(&thread_id, NULL, handle_connection, &arg);
-
-  if (check != 0) {
-    printf("Failed to handle connection\n");
-  }
-  // }
-  pthread_join(thread_id, NULL);
+  // pthread_join(thread_id, NULL);
   return 0;
 }
