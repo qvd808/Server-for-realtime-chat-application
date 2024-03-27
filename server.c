@@ -174,7 +174,7 @@ void *handle_connection(void *arg) {
               if (traverse->next != NULL) {
                 // temp->head = &(traverse->next);
                 traverse = traverse->next;
-                (*function_arg.room_head)->head = &traverse;
+                *((*function_arg.room_head)->head) = traverse;
 
                 printf("The current room head is %p\n",
                        (*function_arg.room_head)->head);
@@ -198,7 +198,7 @@ void *handle_connection(void *arg) {
                        *(temp_room->head));
                 printf("The memory is temp_room is %p\n", temp_room);
 
-                // free(temp_room->head);
+                free(temp_room->head);
                 // temp_room->head = NULL;
                 free(temp_room);
                 // temp_room = NULL;
