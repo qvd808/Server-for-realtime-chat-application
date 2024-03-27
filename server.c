@@ -172,9 +172,14 @@ void *handle_connection(void *arg) {
               } else {
                 Room *temp_room = *function_arg.room_head;
                 free(temp_room->head);
+                // temp_room->head = NULL;
                 free(temp_room);
+                // temp_room = NULL;
+                Room *new_room_head = NULL;
+                function_arg.room_head = &new_room_head;
               }
               free(current_client);
+              // printf("The pointer is %p\n", (*function_arg.room_head)->head);
             }
             //   } else {
             // while (traverse->next != NULL) {
