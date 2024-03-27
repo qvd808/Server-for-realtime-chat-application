@@ -104,7 +104,8 @@ void *handle_connection(void *arg) {
              request_room.room_id);
 
       Room *temp = *function_arg.room_head;
-      printf("The address of temp is %p\n", temp);
+      // printf("The address of temp is %p\n", temp);
+
       int send_response = 0;
 
       while (temp != NULL) {
@@ -114,6 +115,7 @@ void *handle_connection(void *arg) {
             {
               Client *new_client =
                   create_client(function_arg.current_client_fd);
+
               add_client((*function_arg.room_head)->head, new_client);
 
               ResponseJoinRoom response_room = ResponseJoinRoom_init_zero;
@@ -163,18 +165,39 @@ void *handle_connection(void *arg) {
             Client *traverse = *temp->head;
 
             if (traverse == NULL) {
+
               break;
             } else if (traverse->fd == function_arg.current_client_fd) {
+
               Client *current_client = traverse;
 
               if (traverse->next != NULL) {
                 // temp->head = &(traverse->next);
                 traverse = traverse->next;
                 (*function_arg.room_head)->head = &traverse;
+
+                printf("The current room head is %p\n",
+                       (*function_arg.room_head)->head);
+                printf("The current room pointer is %p\n",
+                       (*function_arg.room_head));
                 // current_client->next = NULL;
+                printf("The client address is %p\n", current_client);
+
+                free(current_client);
+                current_client = NULL;
 
               } else {
+                printf("The memory is current_client is %p\n", current_client);
+
+                free(current_client);
+
+                current_client = NULL;
                 Room *temp_room = *function_arg.room_head;
+
+                printf("The memory is temp_room->head is %p\n",
+                       *(temp_room->head));
+                printf("The memory is temp_room is %p\n", temp_room);
+
                 // free(temp_room->head);
                 // temp_room->head = NULL;
                 free(temp_room);
@@ -185,10 +208,9 @@ void *handle_connection(void *arg) {
               }
 
               // current_client->next = NULL;
-              free(current_client);
-              current_client = NULL;
               // }
             } else {
+
               while (traverse->next != NULL) {
                 if (traverse->next->fd == function_arg.current_client_fd) {
                   Client *current_client = traverse->next;
@@ -197,6 +219,9 @@ void *handle_connection(void *arg) {
                 }
               }
             }
+
+            break;
+
           } else {
             send_msg_to_other_client(temp->head, function_arg.current_client_fd,
                                      (const char *)chat.chat);
