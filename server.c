@@ -52,18 +52,18 @@ void *handle_connection(void *arg) {
 
   while (1) {
     RequestHeader request_type = RequestHeader_init_zero;
-    if (*function_arg.room_head != NULL) {
-      Room *current_room = *(function_arg.room_head);
-      if (current_room->head != NULL) {
-        // printf("the point is %p\n", current_room->head);
-        Client *head = *current_room->head;
-
-        while (head != NULL) {
-          printf("Client id is %d\n", head->fd);
-          head = head->next;
-        }
-      }
-    }
+    // if (*function_arg.room_head != NULL) {
+    //   Room *current_room = *(function_arg.room_head);
+    //   if (current_room->head != NULL) {
+    //     // printf("the point is %p\n", current_room->head);
+    //     Client *head = *current_room->head;
+    //
+    //     while (head != NULL) {
+    //       printf("Client id is %d\n", head->fd);
+    //       head = head->next;
+    //     }
+    //   }
+    // }
 
     if (!pb_decode_delimited(&input, RequestHeader_fields, &request_type)) {
       perror("Decoding the request type failed!\n");
@@ -166,14 +166,14 @@ void *handle_connection(void *arg) {
               break;
             } else if (traverse->fd == function_arg.current_client_fd) {
               Client *current_client = traverse;
+
               if (traverse->next != NULL) {
                 temp->head = &(traverse->next);
               } else {
-                *(temp->head) = NULL;
                 Room *temp_room = *function_arg.room_head;
+                free(temp_room->head);
                 free(temp_room);
               }
-              // traverse->next = NULL;
               free(current_client);
             }
             //   } else {
