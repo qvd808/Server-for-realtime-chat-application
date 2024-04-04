@@ -31,6 +31,7 @@ enum RequestType {
   CREATE_ROOM = 0;
   JOIN_ROOM = 1;
   SEND_MESSAGE = 2;
+  EXIT_ROOM = 3;
 }
 
 message RequestHeader { RequestType type = 1; }

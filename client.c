@@ -250,36 +250,23 @@ void create(int argc, char *argv[], int fd) {
     }
   }
 
-  // {
-  //   ChatMessage chat;
-  //   strcpy(chat.chat, buffer);
-  //   pb_ostream_t output = pb_ostream_from_socket(fd);
-  //
-  //   if (!pb_encode_delimited(&output, ChatMessage_fields, &chat)) {
-  //     perror("Encoidng the message failed!\n");
-  //     return;
-  //   }
-  // }
-
-  // {
-  //   RequestCreateRoom request = RequestCreateRoom_init_zero;
-  //   strcpy(request.password, buffer);
-  //   pb_ostream_t output = pb_ostream_from_socket(fd);
-  //
-  //   if (!pb_encode_delimited(&output, RequestCreateRoom_fields, &request)) {
-  //     perror("Encoidng the message failed!\n");
-  //   }
-  // }
-
   printf("Creating a room\n");
   free(buffer);
 }
 
+void exit_program(int argc, char *argv[], int fd) {
+  pb_ostream_t output = pb_ostream_from_socket(fd);
+
+  RequestHeader header = RequestHeader_init_zero;
+  header.type = RequestType_EXIT_ROOM;
+
+  if (!pb_encode_delimited(&output, RequestHeader_fields, &header)) {
+    printf("Failed to encode the exit request\n");
+  }
+
+}
 void help(int argc, char *argv[], int fd) {
 
-  if (argc != 1) {
-    printf("Please provide the right format: create\n");
-  }
   printf("join <room_id> to join a room\ncreate to create a room to chat with "
          "your friends\n");
 }
@@ -295,19 +282,23 @@ void execute_dispatch_command(int argc, char *argv[], int fd) {
       {"create", create},
       {"join", join},
       {"help", help},
+      {"exit", exit_program},
   };
 
+  int run_command = 0;
   int numCommand = sizeof(dispatch_table) / sizeof(dispatch_table[0]);
 
   for (int i = 0; i < numCommand; i++) {
     if (strcmp(dispatch_table[i].command, argv[0]) == 0) {
       dispatch_table[i].function(argc, argv, fd);
-      break;
+      run_command = 1;
     }
   }
 
   // execute help if nothing can be found
-  dispatch_table[2].function(argc, argv, fd);
+  if (!run_command) {
+    dispatch_table[1].function(argc, argv, fd);
+  }
 }
 
 void evaluate_cmd(char *buffer, int fd) {
